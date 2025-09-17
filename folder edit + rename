@@ -5,7 +5,7 @@ $setIndex = 1                 # 파일명 C_<폴더번호>_<세트번호>_<순�
 
 # 1) 1~95 숫자 폴더만 골라 순회
 $subfolders = Get-ChildItem -Path $root -Directory |
-  Where-Object { $_.Name -match '^\d+$' -and [int]$_.Name -ge 1 -and [int]$_.Name -le 95 } |
+  Where-Object { $_.Name -match '^\d+$' -and [int]$_.Name -ge 1 -and [int]$_.Name -le 123 } |
   Sort-Object { [int]$_.Name }
 
 foreach ($sf in $subfolders) {
