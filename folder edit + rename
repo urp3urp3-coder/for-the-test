@@ -1,0 +1,42 @@
+# ===== 설정 =====
+$root = "C:\PATH\TO\India"   # 1~95 폴더를 품고 있는 최상위 폴더(India) 경로로 바꾸세요
+$setIndex = 1                 # 파일명 C_<폴더번호>_<세트번호>_<순번> 에서 세트번호(요구사항대로 1 고정)
+# =================
+
+# 1) 1~95 숫자 폴더만 골라 순회
+$subfolders = Get-ChildItem -Path $root -Directory |
+  Where-Object { $_.Name -match '^\d+$' -and [int]$_.Name -ge 1 -and [int]$_.Name -le 95 } |
+  Sort-Object { [int]$_.Name }
+
+foreach ($sf in $subfolders) {
+  $folderNum = [int]$sf.Name
+
+  # 2) 폴더 내 이미지 수집
+  $all = Get-ChildItem -Path $sf.FullName -File | Where-Object {
+    $_.Extension.ToLower() -in @('.jpg','.jpeg','.png')
+  }
+  if ($all.Count -eq 0) { continue }
+
+  # 3) 우선순위 정렬
+  $seq1 = $all | Where-Object { $_.Extension -match 'jpe?g' -and $_.BaseName -notmatch 'forniceal|palpebral' } | Sort-Object Name
+  $seq2 = $all | Where-Object { $_.Extension -eq '.png' -and $_.BaseName -match 'forniceal' -and $_.BaseName -notmatch 'palpebral' } | Sort-Object Name
+  $seq3 = $all | Where-Object { $_.Extension -eq '.png' -and $_.BaseName -match 'forniceal[_-]palpebral' } | Sort-Object Name
+  $seq4 = $all | Where-Object { $_.Extension -eq '.png' -and $_.BaseName -match 'palpebral' -and $_.BaseName -notmatch 'forniceal' } | Sort-Object Name
+
+  $ordered = @(); $ordered += $seq1 + $seq2 + $seq3 + $seq4
+  $already = $ordered | ForEach-Object { $_.FullName }
+  $rest = $all | Where-Object { $already -notcontains $_.FullName } | Sort-Object Name
+  $ordered += $rest
+
+  # 4) 새 이름 부여 후 India 최상위로 이동
+  $k = 1
+  foreach ($f in $ordered) {
+    $ext = $f.Extension.ToLower()
+    $newName = "C_{0}_{1}_{2}{3}" -f $folderNum, $setIndex, $k, $ext  # 예: C_1_1_1.jpg
+
+    $renamedPath = Join-Path $f.DirectoryName $newName
+    Rename-Item -LiteralPath $f.FullName -NewName $newName -ErrorAction Stop
+    Move-Item -LiteralPath $renamedPath -Destination $root -ErrorAction Stop
+    $k++
+  }
+}
